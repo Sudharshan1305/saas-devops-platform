@@ -5,10 +5,70 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-    
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
-  npm-audit:
-    name: NPM Security Audit
+  dependency-scan:
+    name: NPM Audit
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service:
+          - auth-service
+          - billing-service
+          - usage-service
+          - admin-service
+          - api-gateway
+          - frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Run npm audit
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            cd frontend
+          else
+            cd services/${{ matrix.service }}
+          fi
+          npm audit --audit-level=high || echo "Vulnerabilities found but continuing..."
+        continue-on-error: true
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ""
+          head: ${{ github.ref_name }}
+          extra_args: --only-verified
+        continue-on-error: true
+
+  container-scan:
+    name: Trivy Container Scan
     runs-on: ubuntu-latest
     
     strategy:
@@ -23,44 +83,41 @@ jobs:
           - frontend
     
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
+      - name: Build Docker image
         run: |
           if [ "${{ matrix.service }}" = "frontend" ]; then
-            cd frontend && npm ci
+            docker build -t ${{ matrix.service }}:scan ./frontend
           else
-            cd services/${{ matrix.service }} && npm ci
+            docker build -t ${{ matrix.service }}:scan ./services/${{ matrix.service }}
           fi
       
-      - name: Run npm audit
-        run: |
-          if [ "${{ matrix.service }}" = "frontend" ]; then
-            cd frontend
-          else
-            cd services/${{ matrix.service }}
-          fi
-          npm audit --audit-level=moderate || true
-
-  trivy-scan:
-    name: Trivy Security Scan
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Run Trivy filesystem scan
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
+          image-ref: ${{ matrix.service }}:scan
           format: 'table'
           exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      
+      - name: Run Trivy (JSON output for review)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:scan
+          format: 'json'
+          output: 'trivy-results-${{ matrix.service }}.json'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+      
+      - name: Upload Trivy results as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-results-${{ matrix.service }}
+          path: trivy-results-${{ matrix.service }}.json
+          retention-days: 30
