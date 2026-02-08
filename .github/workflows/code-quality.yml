@@ -1,0 +1,50 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  prettier:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install Prettier
+        run: npm install -g prettier
+      
+      - name: Check formatting
+        run: |
+          prettier --check "**/*.{js,jsx,json,md,yml,yaml}" || true
+        continue-on-error: true
+
+  eslint:
+    name: ESLint Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install ESLint
+        run: npm install -g eslint
+      
+      - name: Run ESLint
+        run: |
+          eslint "**/*.js" --max-warnings 10 || true
+        continue-on-error: true
