@@ -4,10 +4,10 @@ Production-ready SaaS platform with microservices architecture, complete DevOps 
 
 ## 📊 Build Status
 
-![Lint and Test](https://github.com/YOUR_USERNAME/saas-devops-platform/actions/workflows/lint-and-test.yml/badge.svg)
-![Docker Build](https://github.com/YOUR_USERNAME/saas-devops-platform/actions/workflows/docker-build.yml/badge.svg)
-![Security Scan](https://github.com/YOUR_USERNAME/saas-devops-platform/actions/workflows/security-scan.yml/badge.svg)
-![Code Quality](https://github.com/YOUR_USERNAME/saas-devops-platform/actions/workflows/code-quality.yml/badge.svg)
+![Lint and Test](https://github.com/Sudharshan1305/saas-devops-platform/actions/workflows/lint-and-test.yml/badge.svg)
+![Docker Build](https://github.com/Sudharshan1305/saas-devops-platform/actions/workflows/docker-build.yml/badge.svg)
+![Security Scan](https://github.com/Sudharshan1305/saas-devops-platform/actions/workflows/security-scan.yml/badge.svg)
+![Code Quality](https://github.com/Sudharshan1305/saas-devops-platform/actions/workflows/code-quality.yml/badge.svg)
 
 ## 🏗️ Architecture
 
